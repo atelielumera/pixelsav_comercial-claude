@@ -1,42 +1,37 @@
-import { createClient } from '@supabase/supabase-js'
-
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_KEY
-)
+import { supabaseAdmin } from '../../lib/supabaseAdmin'
 
 export default async function handler(req, res) {
   if (req.method === 'GET') {
     const { lead_id } = req.query
     if (!lead_id) return res.status(400).json({ erro: 'lead_id obrigatório' })
 
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('mensagens')
       .select('*')
       .eq('lead_id', lead_id)
-      .order('created_at', { ascending: true })
+      .order('timestamp', { ascending: true })
 
     if (error) return res.status(500).json({ erro: error.message })
     return res.status(200).json(data)
   }
 
   if (req.method === 'POST') {
-    const { lead_id, autor, conteudo } = req.body || {}
-    if (!lead_id || !autor || !conteudo) {
-      return res.status(400).json({ erro: 'lead_id, autor e conteudo obrigatórios' })
+    const { lead_id, autor, tipo_autor, conteudo } = req.body || {}
+    if (!lead_id || !autor || !tipo_autor || !conteudo) {
+      return res.status(400).json({ erro: 'lead_id, autor, tipo_autor e conteudo obrigatórios' })
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('mensagens')
-      .insert({ lead_id, autor, conteudo })
+      .insert({ lead_id, autor, tipo_autor, conteudo })
       .select()
       .single()
 
     if (error) return res.status(500).json({ erro: error.message })
 
-    await supabase
+    await supabaseAdmin
       .from('leads')
-      .update({ ultimo_contato: new Date().toISOString() })
+      .update({ updated_at: new Date().toISOString() })
       .eq('id', lead_id)
 
     return res.status(201).json(data)
